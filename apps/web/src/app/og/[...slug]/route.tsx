@@ -2,23 +2,7 @@ import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 
 import { baseUrl } from "@/config/site";
-import { env } from "@/lib/env";
-
-const OG_SECRET = env.OG_SECRET;
-
-const key = crypto.subtle.importKey(
-  "raw",
-  new TextEncoder().encode(OG_SECRET),
-  { name: "HMAC", hash: { name: "SHA-256" } },
-  false,
-  ["sign"],
-);
-
-const toHex = (arrayBuffer: ArrayBuffer) => {
-  return Array.prototype.map
-    .call(new Uint8Array(arrayBuffer), (n) => n.toString(16).padStart(2, "0"))
-    .join("");
-};
+import { GENERIC_OG_TITLE, isLegacyToken, verifyToken } from "@/utils/og";
 
 export async function GET(
   request: NextRequest,
@@ -27,16 +11,18 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const resolvedParams = await params;
   const [first, second] = resolvedParams.slug;
-  const title = searchParams.get("title");
+  const requestedTitle = searchParams.getAll("title").at(-1) ?? "";
 
   const id = second ? first : first?.split("/")[0];
   const token = second ? second : first?.split("/")[1];
 
-  const verifyToken = toHex(
-    await crypto.subtle.sign("HMAC", await key, new TextEncoder().encode(JSON.stringify({ id }))),
-  );
-
-  if (token !== verifyToken) {
+  const tokenValue = token ?? "";
+  let title: string;
+  if (id && verifyToken(id, requestedTitle, tokenValue)) {
+    title = requestedTitle;
+  } else if (id && isLegacyToken(id, tokenValue)) {
+    title = GENERIC_OG_TITLE;
+  } else {
     return new Response("Invalid token.", { status: 401 });
   }
 
