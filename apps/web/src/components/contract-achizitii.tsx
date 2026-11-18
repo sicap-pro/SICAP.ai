@@ -8,6 +8,14 @@ import { formatDate } from "@sicap/api";
 import { getCachedContractAchizitii } from "@/lib/cached-queries";
 import { RowItem } from "./utils";
 
+const hasId = (id: unknown): boolean => {
+  if (id === null || id === undefined) {
+    return false;
+  }
+  const value = String(id).trim();
+  return value !== "" && value !== "null" && value !== "undefined";
+};
+
 export async function ContractAchizitii({ id }: { id: string }) {
   await connection();
   let contract: Awaited<ReturnType<typeof getCachedContractAchizitii>>;
@@ -70,26 +78,34 @@ export async function ContractAchizitii({ id }: { id: string }) {
         <RowItem
           label="Autoritatea contractanta"
           value={
-            <Link
-              href={`/autoritate/${numericFiscalNumber}`}
-              className="underline text-primary font-semibold"
-              target="_blank"
-            >
-              {numericFiscalNumber} - {entityName}
-            </Link>
+            hasId(numericFiscalNumber) ? (
+              <Link
+                href={`/autoritate/${numericFiscalNumber}`}
+                className="underline text-primary font-semibold"
+                target="_blank"
+              >
+                {numericFiscalNumber} - {entityName}
+              </Link>
+            ) : (
+              entityName
+            )
           }
         />
         <RowItem label="Localitate" value={`${city}, ${county}`} />
         <RowItem
           label="Furnizor"
           value={
-            <Link
-              href={`/firma/${supplier.numericFiscalNumber}`}
-              className="underline text-primary font-semibold"
-              target="_blank"
-            >
-              {supplier.numericFiscalNumber} - {supplier.entityName}
-            </Link>
+            hasId(supplier.numericFiscalNumber) ? (
+              <Link
+                href={`/firma/${supplier.numericFiscalNumber}`}
+                className="underline text-primary font-semibold"
+                target="_blank"
+              >
+                {supplier.numericFiscalNumber} - {supplier.entityName}
+              </Link>
+            ) : (
+              supplier.entityName
+            )
           }
         />
         <RowItem label="Tipul contractului" value={sysAcquisitionContractType?.text || "-"} />

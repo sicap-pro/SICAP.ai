@@ -8,6 +8,14 @@ import { formatDate, formatDateTime } from "@sicap/api";
 import { getCachedContractLicitatii } from "@/lib/cached-queries";
 import { RowItem } from "./utils";
 
+const hasId = (id: unknown): boolean => {
+  if (id === null || id === undefined) {
+    return false;
+  }
+  const value = String(id).trim();
+  return value !== "" && value !== "null" && value !== "undefined";
+};
+
 export async function ContractLicitatii({ id }: { id: string }) {
   await connection();
   let contract: Awaited<ReturnType<typeof getCachedContractLicitatii>>;
@@ -45,7 +53,7 @@ export async function ContractLicitatii({ id }: { id: string }) {
   }e-licitatie.ro/pub/notices/ca-notices/view-c/${id}`;
 
   const supplierFiscalNumber = winner.fiscalNumberInt || winner.fiscalNumber;
-  const supplierUrl = supplierFiscalNumber ? `/firma/${supplierFiscalNumber}` : "#";
+  const supplierUrl = hasId(supplierFiscalNumber) ? `/firma/${supplierFiscalNumber}` : "#";
 
   return (
     <div className="border dark:border-secondary p-4 rounded-sm">
@@ -100,13 +108,17 @@ export async function ContractLicitatii({ id }: { id: string }) {
         <RowItem
           label="Autoritatea contractanta"
           value={
-            <Link
-              href={`/autoritate/${nationalIDNumber}`}
-              className="underline text-primary font-semibold"
-              target="_blank"
-            >
-              {contractingAuthorityNameAndFN}
-            </Link>
+            hasId(nationalIDNumber) ? (
+              <Link
+                href={`/autoritate/${nationalIDNumber}`}
+                className="underline text-primary font-semibold"
+                target="_blank"
+              >
+                {contractingAuthorityNameAndFN}
+              </Link>
+            ) : (
+              contractingAuthorityNameAndFN
+            )
           }
         />
         <RowItem label="Localitate" value={`${city} ${county ? `, ${county?.text}` : ""}`} />
@@ -157,7 +169,7 @@ export async function ContractLicitatii({ id }: { id: string }) {
                           <span className="text-sm font-medium">Câștigători: </span>
                           {lotWinner.winners.map((w, idx) => {
                             const winnerFiscalNumber = w.fiscalNumberInt || w.fiscalNumber;
-                            const winnerUrl = winnerFiscalNumber
+                            const winnerUrl = hasId(winnerFiscalNumber)
                               ? `/firma/${winnerFiscalNumber}`
                               : "#";
                             return (

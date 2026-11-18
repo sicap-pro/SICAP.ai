@@ -8,6 +8,14 @@ import { formatDateTime } from "@sicap/api";
 import { getCachedContractAchizitiiOffline } from "@/lib/cached-queries";
 import { RowItem } from "./utils";
 
+const hasId = (id: unknown): boolean => {
+  if (id === null || id === undefined) {
+    return false;
+  }
+  const value = String(id).trim();
+  return value !== "" && value !== "null" && value !== "undefined";
+};
+
 export async function ContractAchizitiiOffline({ id }: { id: string }) {
   await connection();
   let contract: Awaited<ReturnType<typeof getCachedContractAchizitiiOffline>>;
@@ -101,26 +109,34 @@ export async function ContractAchizitiiOffline({ id }: { id: string }) {
         <RowItem
           label="Autoritatea contractanta"
           value={
-            <Link
-              href={`/autoritate/${numericFiscalNumber}`}
-              className="underline text-primary font-semibold"
-              target="_blank"
-            >
-              {numericFiscalNumber} - {entityName}
-            </Link>
+            hasId(numericFiscalNumber) ? (
+              <Link
+                href={`/autoritate/${numericFiscalNumber}`}
+                className="underline text-primary font-semibold"
+                target="_blank"
+              >
+                {numericFiscalNumber} - {entityName}
+              </Link>
+            ) : (
+              entityName
+            )
           }
         />
         <RowItem label="Localitate" value={`${cityAuthority}, ${county}`} />
         <RowItem
           label="Ofertant"
           value={
-            <Link
-              href={`/firma/${supplierFiscalNumber}`}
-              className="underline text-primary font-semibold"
-              target="_blank"
-            >
-              {supplierName}
-            </Link>
+            hasId(supplierFiscalNumber) ? (
+              <Link
+                href={`/firma/${supplierFiscalNumber}`}
+                className="underline text-primary font-semibold"
+                target="_blank"
+              >
+                {supplierName}
+              </Link>
+            ) : (
+              supplierName
+            )
           }
         />
         <RowItem label="Localitate" value={`${citySupplier}, ${countrySupplier.text}`} />

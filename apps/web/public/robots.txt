@@ -1,5 +1,13 @@
+# Search crawlers: Google and Bing. AI-specific crawlers fall under the * group below.
 User-agent: Googlebot
 Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Apple lets Applebot follow the Googlebot group and may do the same for Applebot-Extended, its AI-training token; this keeps it out either way.
+User-agent: Applebot-Extended
+Disallow: /
 
 User-agent: *
 Disallow: /

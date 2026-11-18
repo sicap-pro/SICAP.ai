@@ -48,7 +48,7 @@ export function Search({ hideButton }: { hideButton?: boolean }) {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch("input")}
+              onKeyDown={(e) => e.key === "Enter" && !e.repeat && handleSearch("input")}
               placeholder="cauta achizitii publice..."
               className="w-full"
               autoFocus

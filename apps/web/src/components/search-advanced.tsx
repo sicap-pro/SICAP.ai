@@ -184,7 +184,15 @@ export function AdvancedSearch({ query, setOpen }: AdvancedSearchProps) {
     <DialogContent className="sm:max-w-2xl h-full sm:h-[80%] p-2">
       <Form {...form}>
         <ScrollArea className="p-2">
-          <form onSubmit={form.handleSubmit(onSubmit)} className="p-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.repeat) {
+                e.preventDefault();
+              }
+            }}
+            className="p-4"
+          >
             <DialogHeader>
               <DialogTitle>Cautare avansata</DialogTitle>
             </DialogHeader>
