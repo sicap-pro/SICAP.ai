@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCuiClauses, getCuiSearchTerms } from "./search-contracts";
+import { buildCuiClauses, getCuiSearchTerms, normalizeIndexes } from "./search-contracts";
 
 // Fields mapped as numbers in Elasticsearch. A phrase query carrying the "RO" prefix against
 // one of these raises number_format_exception, which fails the entire search request.
@@ -61,5 +61,43 @@ describe("buildCuiClauses", () => {
     for (const clause of clauses) {
       expect(clause.multi_match.fields).toEqual(NUMERIC_MAPPED_FIELDS);
     }
+  });
+});
+
+describe("normalizeIndexes", () => {
+  const known = ["idx-public", "idx-direct", "idx-offline"];
+
+  it("uses all known indexes when db is undefined", () => {
+    expect(normalizeIndexes(undefined, known)).toEqual(known);
+  });
+
+  it("uses all known indexes for an empty list", () => {
+    expect(normalizeIndexes([], known)).toEqual(known);
+  });
+
+  it("splits a comma separated string and trims entries", () => {
+    expect(normalizeIndexes("idx-direct, idx-offline", known)).toEqual([
+      "idx-direct",
+      "idx-offline",
+    ]);
+  });
+
+  it("flattens a repeated-key array and removes duplicates", () => {
+    expect(normalizeIndexes(["idx-direct", "idx-direct,idx-public"], known)).toEqual([
+      "idx-direct",
+      "idx-public",
+    ]);
+  });
+
+  it("drops unknown names from a mixed list", () => {
+    expect(normalizeIndexes(["idx-offline", "other", "idx-*"], known)).toEqual(["idx-offline"]);
+  });
+
+  it("does not treat a wildcard as an index", () => {
+    expect(normalizeIndexes("*", known)).toEqual(known);
+  });
+
+  it("uses all known indexes when only unknown names remain", () => {
+    expect(normalizeIndexes(["foo", "bar,baz"], known)).toEqual(known);
   });
 });

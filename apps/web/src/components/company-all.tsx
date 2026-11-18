@@ -10,6 +10,7 @@ import {
 } from "@/lib/cached-queries";
 
 import { formatNumber, moneyEur, moneyRon } from "@/utils";
+import { parsePage, parsePerPage } from "@/utils/params";
 import type { SearchParams } from "./search-list";
 import { ListItem } from "./list-item";
 import { Pagination } from "./pagination";
@@ -30,7 +31,8 @@ interface CompanyAllProps {
 
 export async function CompanyAll({ nationalId, searchParams }: CompanyAllProps) {
   await connection();
-  const { p: page = 1, perPage = 20 } = searchParams;
+  const page = parsePage(searchParams.p);
+  const perPage = parsePerPage(searchParams.perPage);
 
   let results: Awaited<ReturnType<typeof getCachedCompanyByNationalId>>;
   let registry: Awaited<ReturnType<typeof getCachedCompanyRegistry>> = null;

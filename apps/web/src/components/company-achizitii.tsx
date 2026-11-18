@@ -7,6 +7,7 @@ import { getCachedCompanyAchizitii } from "@/lib/cached-queries";
 
 import { formatNumber, moneyEur, moneyRon } from "@/utils";
 import type { SLUG } from "@/utils/types";
+import { parsePage, parsePerPage } from "@/utils/params";
 import type { SearchParams } from "./search-list";
 import { ListItem } from "./list-item";
 import { Pagination } from "./pagination";
@@ -23,7 +24,8 @@ interface CompanyAchizitiiProps {
 
 export async function CompanyAchizitii({ id, slug, searchParams }: CompanyAchizitiiProps) {
   await connection();
-  const { p: page = 1, perPage = 20 } = searchParams;
+  const page = parsePage(searchParams.p);
+  const perPage = parsePerPage(searchParams.perPage);
   const propMappings = {
     autoritate: { authorityId: id },
     firma: { supplierId: id },

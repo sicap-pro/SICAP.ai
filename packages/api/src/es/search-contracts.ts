@@ -164,6 +164,24 @@ const getAllCuiFields = () => [
   ...CUI_SEARCH_FIELDS[ES_INDEX_OFFLINE],
 ];
 
+const KNOWN_INDEXES = [ES_INDEX_PUBLIC, ES_INDEX_DIRECT, ES_INDEX_OFFLINE];
+
+/**
+ * Flattens the `db` input (string, string array or undefined), splits entries on commas,
+ * trims them and keeps only known index names, without duplicates. Falls back to all known
+ * indexes when the input is missing or holds no known name.
+ */
+export function normalizeIndexes(
+  db: string | readonly string[] | undefined | null,
+  known: readonly string[] = KNOWN_INDEXES,
+): string[] {
+  const requested = (Array.isArray(db) ? db : [db])
+    .flatMap((entry) => (typeof entry === "string" ? entry.split(",") : []))
+    .map((entry) => entry.trim());
+  const selected = Array.from(new Set(requested.filter((entry) => known.includes(entry))));
+  return selected.length > 0 ? selected : [...known];
+}
+
 export async function searchContracts({
   query,
   page = 1,
@@ -186,11 +204,7 @@ export async function searchContracts({
     euFunds,
   } = filters;
 
-  if (
-    db?.filter((d) => [ES_INDEX_DIRECT, ES_INDEX_PUBLIC, ES_INDEX_OFFLINE].includes(d)).length === 0
-  ) {
-    throw new Error("Baza de date nu este specificata.");
-  }
+  const indexes = normalizeIndexes(db);
 
   const searchFields = getAllSearchFields();
   const cuiFields = getAllCuiFields();
@@ -544,7 +558,7 @@ export async function searchContracts({
   };
 
   const searchParams = {
-    index: db,
+    index: indexes,
     body: {
       query: querySearch,
       sort: [

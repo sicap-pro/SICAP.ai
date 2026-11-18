@@ -1,4 +1,6 @@
+import { hasDisallowedSegmentChars } from "@/utils/params";
 import { Suspense } from "react";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { connection } from "next/server";
 
@@ -15,6 +17,12 @@ export type PageProps = {
   }>;
 };
 
+function rejectInvalidSegments(p: { county: string; city: string }) {
+  if (hasDisallowedSegmentChars(p.county) || hasDisallowedSegmentChars(p.city)) {
+    notFound();
+  }
+}
+
 // Helper to format display names from slugs
 function formatDisplayName(slug: string): string {
   return slug
@@ -30,6 +38,7 @@ export function generateStaticParams() {
 export async function generateMetadata(props: PageProps) {
   await connection();
   const params = await props.params;
+  rejectInvalidSegments(params);
   const city = formatDisplayName(params.city);
   const county = formatDisplayName(params.county);
 
@@ -80,6 +89,7 @@ function Breadcrumb({ county, city }: { county: string; city: string }) {
 
 async function PageContent({ params }: { params: PageProps["params"] }) {
   const resolvedParams = await params;
+  rejectInvalidSegments(resolvedParams);
   const city = formatDisplayName(resolvedParams.city);
   const county = formatDisplayName(resolvedParams.county);
 
@@ -88,6 +98,7 @@ async function PageContent({ params }: { params: PageProps["params"] }) {
 
 export default async function Page({ params }: PageProps) {
   const resolvedParams = await params;
+  rejectInvalidSegments(resolvedParams);
 
   return (
     <main className="container px-8 py-4 flex flex-col gap-4 lg:max-w-7xl">

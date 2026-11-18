@@ -1,4 +1,9 @@
-import { dbIds, formatNumber } from "@/utils";
+import { headers } from "next/headers";
+import { after } from "next/server";
+import { auth } from "@/lib/auth";
+import { listRequestId, recordAccountRead, requestIp } from "@/lib/account-read";
+import { formatNumber } from "@/utils";
+import { isQueryLengthOk, lastValue, parsePage, parsePerPage } from "@/utils/params";
 import type { IndexName } from "@sicap/api";
 import { searchContracts } from "@sicap/api";
 
@@ -33,29 +38,26 @@ interface SearchListProps {
 }
 
 export async function SearchList({ searchParams }: SearchListProps) {
-  const {
-    q: query,
-    p: page = 1,
-    perPage = 20,
-    db,
-    dateFrom,
-    dateTo,
-    valueFrom,
-    valueTo,
-    authority,
-    cpv,
-    localityAuthority,
-    countyAuthority,
-    supplier,
-    localitySupplier,
-    countySupplier,
-    euFunds,
-  } = searchParams;
-
-  const dbs = ((Array.isArray(db) ? db : db?.split(",")) || dbIds) as IndexName[];
+  const query = lastValue(searchParams.q) ?? "";
+  const page = parsePage(searchParams.p);
+  const perPage = parsePerPage(searchParams.perPage);
+  const db = searchParams.db as string | string[] | undefined;
+  const dateFrom = lastValue(searchParams.dateFrom);
+  const dateTo = lastValue(searchParams.dateTo);
+  const valueFrom = lastValue(searchParams.valueFrom);
+  const valueTo = lastValue(searchParams.valueTo);
+  const authority = lastValue(searchParams.authority);
+  const cpv = lastValue(searchParams.cpv);
+  const localityAuthority = lastValue(searchParams.localityAuthority);
+  const countyAuthority = lastValue(searchParams.countyAuthority);
+  const supplier = lastValue(searchParams.supplier);
+  const localitySupplier = lastValue(searchParams.localitySupplier);
+  const countySupplier = lastValue(searchParams.countySupplier);
+  const euFunds = lastValue(searchParams.euFunds);
 
   const filters = {
-    db: dbs,
+    // Index selection is normalized inside searchContracts.
+    db: (db === undefined ? undefined : Array.isArray(db) ? db : [db]) as IndexName[] | undefined,
     dateFrom,
     dateTo,
     cpv,
@@ -70,12 +72,27 @@ export async function SearchList({ searchParams }: SearchListProps) {
     euFunds: euFunds === "true",
   };
 
-  const results = await searchContracts({
-    query,
-    page,
-    perPage,
-    filters,
-  });
+  const results = isQueryLengthOk(query)
+    ? await searchContracts({ query, page, perPage, filters })
+    : { items: [], total: 0 };
+
+  const rowCount = results.items.length;
+  if (rowCount > 0) {
+    try {
+      const reqHeaders = await headers();
+      const session = await auth.api.getSession({ headers: reqHeaders });
+      if (session?.user?.id) {
+        const userId = session.user.id;
+        const ip = requestIp(reqHeaders);
+        const id = listRequestId({ query, filters, page, perPage });
+        after(() =>
+          recordAccountRead({ userId, kind: "list", id, n: rowCount, via: "search", ip }),
+        );
+      }
+    } catch {
+      // usage logging must never break the page
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">

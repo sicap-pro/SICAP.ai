@@ -1,3 +1,4 @@
+import { hasDisallowedSegmentChars } from "@/utils/params";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -23,6 +24,9 @@ export function generateStaticParams() {
 export async function generateMetadata(props: PageProps) {
   await connection();
   const { nationalId } = await props.params;
+  if (hasDisallowedSegmentChars(nationalId)) {
+    notFound();
+  }
 
   try {
     const { total, stats, authority } = await getCachedAuthorityByNationalId({
@@ -60,6 +64,9 @@ async function PageContent({
   searchParams: Promise<SearchParams>;
 }) {
   const { nationalId } = await params;
+  if (hasDisallowedSegmentChars(nationalId)) {
+    notFound();
+  }
   const resolvedSearchParams = await searchParams;
 
   return <AuthorityAll nationalId={nationalId} searchParams={resolvedSearchParams} />;

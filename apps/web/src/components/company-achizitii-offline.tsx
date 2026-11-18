@@ -5,6 +5,7 @@ import { getCachedCompanyAchizitiiOffline } from "@/lib/cached-queries";
 
 import { formatNumber, moneyEur, moneyRon } from "@/utils";
 import type { SLUG } from "@/utils/types";
+import { lastValue, parsePage, parsePerPage } from "@/utils/params";
 import type { SearchParams } from "./search-list";
 import { ListItem } from "./list-item";
 import { Pagination } from "./pagination";
@@ -24,7 +25,9 @@ export async function CompanyAchizitiiOffline({
   searchParams,
 }: CompanyAchizitiiOfflineProps) {
   await connection();
-  const { p: page = 1, perPage = 20, isFiscal } = searchParams;
+  const page = parsePage(searchParams.p);
+  const perPage = parsePerPage(searchParams.perPage);
+  const isFiscal = lastValue(searchParams.isFiscal);
 
   const propMappings = {
     autoritate: { authorityId: id },

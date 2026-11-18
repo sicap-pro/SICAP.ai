@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getCachedAuthorityByNationalId } from "@/lib/cached-queries";
 
 import { formatNumber, moneyEur, moneyRon, slugify } from "@/utils";
+import { parsePage, parsePerPage } from "@/utils/params";
 import type { SearchParams } from "./search-list";
 import { ListItem } from "./list-item";
 import { Pagination } from "./pagination";
@@ -20,7 +21,8 @@ interface AuthorityAllProps {
 
 export async function AuthorityAll({ nationalId, searchParams }: AuthorityAllProps) {
   await connection();
-  const { p: page = 1, perPage = 20 } = searchParams;
+  const page = parsePage(searchParams.p);
+  const perPage = parsePerPage(searchParams.perPage);
 
   let results: Awaited<ReturnType<typeof getCachedAuthorityByNationalId>>;
   try {

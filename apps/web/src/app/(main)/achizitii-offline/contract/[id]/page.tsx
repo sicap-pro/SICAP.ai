@@ -1,3 +1,4 @@
+import { hasDisallowedSegmentChars } from "@/utils/params";
 import { Suspense } from "react";
 import { connection } from "next/server";
 
@@ -20,6 +21,9 @@ export function generateStaticParams() {
 export async function generateMetadata(props: PageProps) {
   await connection();
   const { id } = await props.params;
+  if (hasDisallowedSegmentChars(id)) {
+    notFound();
+  }
 
   try {
     const contract = await getCachedContractAchizitiiOffline(id);
@@ -45,6 +49,9 @@ export async function generateMetadata(props: PageProps) {
 
 async function PageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (hasDisallowedSegmentChars(id)) {
+    notFound();
+  }
   return <ContractAchizitiiOffline id={id} />;
 }
 
