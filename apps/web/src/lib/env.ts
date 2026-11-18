@@ -1,21 +1,23 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+// Hosted builds must supply a database token; local development can run without one.
+const hosted = process.env.VERCEL_ENV === "production" || process.env.VERCEL_ENV === "preview";
+
 export const env = createEnv({
   server: {
     ES_URL: z.string().url().optional().default("http://localhost:9200"),
     DATABASE_URL: z.string().url().optional().default("http://127.0.0.1:8080"),
-    DATABASE_AUTH_TOKEN: z.string().optional().default("abcd"),
+    DATABASE_AUTH_TOKEN: hosted ? z.string().min(1) : z.string().optional().default("abcd"),
     GOOGLE_ID: z.string().optional(),
     GOOGLE_SECRET: z.string().optional(),
-    AUTH_SECRET: z.string().optional().default("abcd"),
+    NEXTAUTH_SECRET: z.string().min(32),
     NEXTAUTH_URL: z.string().url().optional().default("http://localhost:3000"),
-    OG_SECRET: z.string().optional().default("abcd"),
+    OG_SECRET: z.string().min(1),
     BASE_URL: z.string().url().optional().default("http://localhost:3000"),
     LISTMONK_API_KEY: z.string().optional(),
     LISTMONK_API_URL: z.string().url().optional().default("http://localhost:9000"),
     LISTMONK_FROM_EMAIL: z.string().email().optional(),
-    API_SERVICES_TOKEN: z.string().optional().default(""),
   },
   client: {
     NEXT_PUBLIC_FORMBRICKS_API_HOST: z.string().min(1),
@@ -33,11 +35,10 @@ export const env = createEnv({
   runtimeEnv: {
     ES_URL: process.env.ES_URL,
     DATABASE_URL: process.env.DATABASE_URL,
-    API_SERVICES_TOKEN: process.env.API_SERVICES_TOKEN,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     GOOGLE_ID: process.env.GOOGLE_ID,
     GOOGLE_SECRET: process.env.GOOGLE_SECRET,
-    AUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     OG_SECRET: process.env.OG_SECRET,
     BASE_URL: process.env.BASE_URL,

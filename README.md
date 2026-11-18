@@ -115,7 +115,7 @@ DATABASE_AUTH_TOKEN="your-turso-auth-token"
 # ==========================================
 BASE_URL="http://localhost:3042"
 NEXTAUTH_URL="http://localhost:3042"
-AUTH_SECRET="your-auth-secret-min-32-chars"
+NEXTAUTH_SECRET="your-auth-secret-min-32-chars"
 OG_SECRET="your-og-image-secret"
 
 # ==========================================
@@ -162,7 +162,6 @@ NEXT_PUBLIC_OPENSTATUS_RUM_DSN="your-openstatus-dsn"
 # ==========================================
 # ALTELE - Opțional
 # ==========================================
-API_SERVICES_TOKEN="your-internal-api-token"
 NEXT_PUBLIC_CLOUDFLARE_HOST="your-cloudflare-host"
 NEXT_PUBLIC_CLOUDFLARE_TOKEN="your-cloudflare-token"
 NEXT_PUBLIC_TELEMETRY_DISABLED="true"

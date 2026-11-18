@@ -48,6 +48,17 @@ const nextConfig: NextConfig = {
 			mdxType: "gfm",
 		},
 	},
+	async headers() {
+		return [
+			{
+				source: "/oauth/consent",
+				headers: [
+					{ key: "Referrer-Policy", value: "no-referrer" },
+					{ key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+				],
+			},
+		];
+	},
 	async rewrites() {
 		return [
 			{

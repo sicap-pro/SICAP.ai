@@ -109,7 +109,7 @@ Authenticated users query the procurement data from Claude and other agents via 
 Required in `.env`:
 - `ES_URL`, `ES_API_KEY` - Elasticsearch connection
 - `DATABASE_URL`, `DATABASE_AUTH_TOKEN` - Turso database
-- `NEXTAUTH_URL`, `AUTH_SECRET` - Auth configuration (Better Auth)
+- `NEXTAUTH_URL`, `NEXTAUTH_SECRET` - Auth configuration (Better Auth); the secret is required, at least 32 characters
 - `OG_SECRET` - OG image generation
 - `BASE_URL` - Public base URL (used for the MCP connector URL and result links)
 
