@@ -21,7 +21,15 @@ import { getContractBySlug } from "@/lib/mcp/contracts";
 import { corsPreflight, withCors } from "@/lib/mcp/cors";
 import { type ContractSlug, clampPerPage, toCompactRow } from "@/lib/mcp/format";
 import { indexToSlug, slugToIndex } from "@/lib/mcp/index-map";
-import { enforceRateLimit, RateLimitError } from "@/lib/mcp/rate-limit";
+import {
+  chargeCredits,
+  enforceRateLimit,
+  limitInstructions,
+  RateLimitError,
+  type Reservation,
+  releaseCredits,
+  retryAfterSeconds,
+} from "@/lib/mcp/rate-limit";
 
 export const maxDuration = 60;
 
@@ -29,17 +37,12 @@ type ToolResult = { content: Array<{ type: "text"; text: string }>; isError?: bo
 
 type ReadSummary = { id: string; n: number };
 
-const MINUTE_MS = 60_000;
-const DAY_MS = 86_400_000;
-const DAY_LIMIT_MESSAGE = new RateLimitError("day").message;
-
-// RateLimitError does not carry its window, so it is told apart by message.
-function retryAfterSeconds(err: RateLimitError, now = Date.now()): number {
-  if (err.message === DAY_LIMIT_MESSAGE) {
-    return Math.max(1, Math.ceil((DAY_MS - (now % DAY_MS)) / 1000));
-  }
-  return Math.max(1, Math.ceil((MINUTE_MS - (now % MINUTE_MS)) / 1000));
-}
+// get_company and get_authority return the profile with one page of its contracts.
+const PROFILE_PAGE = 20;
+const profileContracts = (data: unknown): number => {
+  const items = (data as { profile?: { items?: unknown[] } | null }).profile?.items;
+  return Array.isArray(items) ? items.length : 0;
+};
 
 function unauthorizedResponse(): Response {
   const basePath = "/api/auth"; // auth.ts sets no basePath, so withMcpAuth uses this default
@@ -105,19 +108,28 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
   const run = async (
     tool: string,
     meta: Record<string, unknown>,
+    maxCredits: number,
     fn: () => Promise<unknown>,
     summarize: (data: unknown) => ReadSummary,
   ): Promise<ToolResult> => {
     const started = Date.now();
+    let reservation: Reservation | null = null;
     try {
-      await enforceRateLimit(userId);
+      reservation = await enforceRateLimit(userId, maxCredits, started);
       const data = await fn();
       const read = summarize(data);
+      // chargeCredits drops the hold itself. Clear it first, so a charge that fails after it
+      // committed is not followed by a second drop.
+      const hold = reservation;
+      reservation = null;
+      const charge = await chargeCredits(userId, hold, read.n);
       log.info("mcp.tool", {
         ...meta,
         userId,
         tool,
         n: read.n,
+        credits: charge.credits,
+        limitReached: charge.reached ?? undefined,
         latencyMs: Date.now() - started,
         status: "ok",
       });
@@ -125,8 +137,23 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
       after(() =>
         recordAccountRead({ userId, kind: "mcp", id: read.id, n: read.n, via: "mcp", ip }),
       );
-      return asText(data);
+      const result = asText(data);
+      if (charge.reached) {
+        // This call used up the allowance: say so now, the agent may not call again.
+        result.content.push({ type: "text", text: limitInstructions(charge.reached, started) });
+      }
+      return result;
     } catch (err) {
+      if (reservation) {
+        // The tool failed while its credits were held: drop the hold, nothing is charged.
+        await releaseCredits(userId, reservation).catch((releaseErr: unknown) => {
+          log.error("mcp.release_failed", {
+            userId,
+            tool,
+            message: (releaseErr as Error).message,
+          });
+        });
+      }
       const status = err instanceof RateLimitError ? "rate_limited" : "error";
       log.error("mcp.tool", {
         ...meta,
@@ -139,7 +166,8 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
       await log.flush();
       const body: Record<string, unknown> = { error: (err as Error).message };
       if (err instanceof RateLimitError) {
-        body.retryAfter = retryAfterSeconds(err);
+        body.retryAfter = retryAfterSeconds(err.window, started);
+        body.instructions = limitInstructions(err.window, started);
       }
       return { ...asText(body), isError: true };
     }
@@ -151,7 +179,7 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
 
       server.tool(
         "search_contracts",
-        "Search Romanian public procurement contracts. Datasets: licitatii (public tenders), achizitii (direct acquisitions), achizitii-offline. Returns compact rows; call get_contract for full detail. value is in RON, date is ISO, cpv is the CPV procurement-category code.",
+        "Search Romanian public procurement contracts. Datasets: licitatii (public tenders), achizitii (direct acquisitions), achizitii-offline. Returns compact rows; call get_contract for full detail. Each row returned costs one credit from the account's daily and monthly allowance, so keep perPage as small as the task allows. value is in RON, date is ISO, cpv is the CPV procurement-category code.",
         {
           query: z.string().describe("Free-text query: company, authority, object, or CPV"),
           db: z
@@ -186,6 +214,7 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
           run(
             "search_contracts",
             { query: args.query },
+            clampPerPage(args.perPage),
             async () => {
               const page = args.page ?? 1;
               const db = args.db?.map((s) => slugToIndex(s)).filter((v): v is string => Boolean(v));
@@ -247,6 +276,7 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
           run(
             "get_contract",
             { id: args.id, type: args.type },
+            1,
             () => getContractBySlug(args.type, args.id),
             () => ({ id: args.id, n: 1 }),
           ),
@@ -254,12 +284,13 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
 
       server.tool(
         "get_company",
-        "Look up a supplier company by its Romanian fiscal id (CUI/CIF). Returns the company profile plus the authorities it contracts with most.",
+        "Look up a supplier company by its Romanian fiscal id (CUI/CIF). Returns the company profile with its most recent contracts, plus the authorities it contracts with most. Each contract returned costs one credit.",
         { nationalId: z.string().describe("CUI / CIF fiscal number") },
         async (args: { nationalId: string }) =>
           run(
             "get_company",
             { nationalId: args.nationalId },
+            PROFILE_PAGE,
             async () => {
               const [profile, topAuthorities] = await Promise.all([
                 getCompanyByNationalId({ nationalId: args.nationalId }),
@@ -267,18 +298,19 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
               ]);
               return { profile, topAuthorities };
             },
-            () => ({ id: args.nationalId, n: 1 }),
+            (data) => ({ id: args.nationalId, n: profileContracts(data) }),
           ),
       );
 
       server.tool(
         "get_authority",
-        "Look up a contracting authority by its Romanian fiscal id (CUI/CIF). Returns the authority profile plus its top suppliers.",
+        "Look up a contracting authority by its Romanian fiscal id (CUI/CIF). Returns the authority profile with its most recent contracts, plus its top suppliers. Each contract returned costs one credit.",
         { nationalId: z.string().describe("CUI / CIF fiscal number") },
         async (args: { nationalId: string }) =>
           run(
             "get_authority",
             { nationalId: args.nationalId },
+            PROFILE_PAGE,
             async () => {
               const [profile, topSuppliers] = await Promise.all([
                 getAuthorityByNationalId({ nationalId: args.nationalId }),
@@ -286,7 +318,7 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
               ]);
               return { profile, topSuppliers };
             },
-            () => ({ id: args.nationalId, n: 1 }),
+            (data) => ({ id: args.nationalId, n: profileContracts(data) }),
           ),
       );
 
@@ -298,6 +330,7 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
           run(
             "get_locality_stats",
             { city: args.city, county: args.county },
+            1,
             async () => {
               const [stats, topAuthorities, topCompanies, topCpv] = await Promise.all([
                 getLocalityStats({ city: args.city, county: args.county }),
@@ -319,6 +352,7 @@ const mcpHandler = withMcpAuth(auth, (req, session) => {
           run(
             "get_totals",
             {},
+            1,
             () => getTotal(),
             () => ({ id: "totals", n: 1 }),
           ),

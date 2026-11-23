@@ -102,7 +102,7 @@ Firm pages, the footer and `/despre` carry plain anchors to harta-firmelor.ro (t
 
 ### MCP Server
 
-Authenticated users query the procurement data from Claude and other agents via an OAuth-authenticated MCP server at `/api/mcp` (Better Auth `mcp` plugin + `mcp-handler`, stateless Streamable HTTP). Six read-only tools (`search_contracts`, `get_contract`, `get_company`, `get_authority`, `get_locality_stats`, `get_totals`) wrap `packages/api`, with per-user rate limiting and Axiom telemetry. Deep dive: `docs/architecture.md`.
+Authenticated users query the procurement data from Claude and other agents via an OAuth-authenticated MCP server at `/api/mcp` (Better Auth `mcp` plugin + `mcp-handler`, stateless Streamable HTTP). Six read-only tools (`search_contracts`, `get_contract`, `get_company`, `get_authority`, `get_locality_stats`, `get_totals`) wrap `packages/api`, with per-user limits (60 calls a minute, 100 credits a day, 1,000 a month; one credit per contract returned) and Axiom telemetry. Deep dive: `docs/architecture.md`.
 
 ### Environment Variables
 
