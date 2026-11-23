@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.0](https://github.com/sicap-pro/SICAP.ai/compare/sicap-v0.25.0...sicap-v0.26.0) (2026-11-23)
+
+
+### Features
+
+* **mcp:** count credits per day and month in the MCP limits ([db76d29](https://github.com/sicap-pro/SICAP.ai/commit/db76d2968b035fb96f1f7608c31384efd103b769))
+* **mcp:** count credits per day and month in the MCP limits ([20c9b9b](https://github.com/sicap-pro/SICAP.ai/commit/20c9b9ba6df47ee60c919dc6d816f2eb3b709023))
+
 ## [0.25.0](https://github.com/ciocan/SICAP.ai/compare/sicap-v0.24.0...sicap-v0.25.0) (2026-09-25)
 
 
