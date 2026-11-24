@@ -1,18 +1,10 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 
-import {
-  type CompanyRegistry,
-  companyRepresentatives,
-  formatOnrcAddress,
-  getPrincipalActivity,
-} from "@sicap/api";
+import { type CompanyRegistry, formatOnrcAddress, getPrincipalActivity } from "@sicap/api";
 import { Badge } from "@sicap/ui";
 
 import { slugify } from "@/utils";
-
-import { CompanyRepresentativeLinks } from "./company-representative-links";
 
 interface Props {
   registry: CompanyRegistry | null;
@@ -84,7 +76,6 @@ export function CompanyProfileBand({
   const mapsUrl = address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : null;
-  const representatives = canonical ? companyRepresentatives(canonical.reprezentanti) : [];
 
   return (
     <div className="space-y-2">
@@ -154,29 +145,6 @@ export function CompanyProfileBand({
             address
           )}
         </p>
-      )}
-
-      {representatives.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {representatives.length > 1 ? "Reprezentanți: " : "Reprezentant: "}
-          {representatives.map((rep, index) => (
-            <span key={`${rep.nume}-${rep.calitate ?? ""}`}>
-              {index > 0 ? ", " : ""}
-              <span className="text-foreground">{rep.nume}</span>
-              {rep.calitate ? ` (${rep.calitate.toLowerCase()})` : ""}
-            </span>
-          ))}
-        </p>
-      )}
-
-      {canonical && (
-        <Suspense fallback={null}>
-          <CompanyRepresentativeLinks
-            reprezentanti={canonical.reprezentanti}
-            reprezentantiIf={canonical.reprezentanti_if}
-            cui={nationalId}
-          />
-        </Suspense>
       )}
     </div>
   );

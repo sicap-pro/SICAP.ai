@@ -18,18 +18,6 @@ export interface OnrcActivity {
   denumire: string;
 }
 
-export interface OnrcRepresentative {
-  nume: string;
-  calitate?: string;
-  localitate?: string;
-  judet?: string;
-  tara?: string;
-  // Birth fields exist in the index but are intentionally not surfaced to the UI
-  // (data minimisation); kept on the raw type for completeness.
-  data_nastere?: string;
-  localitate_nastere?: string;
-}
-
 export interface OnrcBranch {
   cod_fiscal?: string;
   denumire?: string;
@@ -37,7 +25,11 @@ export interface OnrcBranch {
   tip_unitate?: string;
 }
 
-/** Raw document shape from the `onrc` index (one per registration, not per company). */
+/**
+ * Document shape read from the `onrc` index (one per registration, not per company). The index
+ * also holds `reprezentanti` and `reprezentanti_if` (natural persons, with birth data);
+ * getCompanyRegistry excludes both from `_source`, so they never reach the app.
+ */
 export interface OnrcRegistration {
   cui: string;
   cod_inmatriculare: string;
@@ -48,8 +40,6 @@ export interface OnrcRegistration {
   adresa?: OnrcAddress;
   caen_codes?: string[];
   activitati?: OnrcActivity[];
-  reprezentanti?: OnrcRepresentative[];
-  reprezentanti_if?: OnrcRepresentative[];
   sucursale?: OnrcBranch[];
   status_codes?: string[];
   status_labels?: string[];
@@ -241,34 +231,6 @@ export function companyActivities(activitati?: OnrcActivity[]): { code: string; 
     }
     seen.add(code);
     out.push({ code, name: a.denumire?.trim() || undefined });
-  }
-  return out;
-}
-
-/**
- * Legal representatives reduced to name + role only. Birth data (data_nastere /
- * localitate_nastere) is dropped for data minimisation, and duplicates collapsed.
- */
-export function companyRepresentatives(
-  reprezentanti?: OnrcRepresentative[],
-): { nume: string; calitate?: string }[] {
-  if (!reprezentanti) {
-    return [];
-  }
-  const seen = new Set<string>();
-  const out: { nume: string; calitate?: string }[] = [];
-  for (const r of reprezentanti) {
-    const nume = r.nume?.trim();
-    if (!nume) {
-      continue;
-    }
-    const calitate = r.calitate?.trim() || undefined;
-    const key = `${nume}|${calitate ?? ""}`;
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    out.push({ nume, calitate });
   }
   return out;
 }

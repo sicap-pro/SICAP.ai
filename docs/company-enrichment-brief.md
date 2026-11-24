@@ -48,6 +48,9 @@ verified data facts and every resolved decision. Status: **Slice 1 + 2 built (id
 5. **People (GDPR):** show representative **names + role (`calitate`) only**. **Omit** `data_nastere`
    / `localitate_nastere` from display (data minimization). Birth data may stay server-side for
    future name disambiguation.
+   **Superseded 2026-11-24:** the firm page shows no representatives at all. The names line and
+   the "și la N firme cu contracte" rows are removed, and `getCompanyRegistry` excludes
+   `reprezentanti` and `reprezentanti_if` from `_source`.
 6. **Activities/branches:** principal activity prominent (CAEN + `denumire`, derived from latest
    `onrc_financials.caen`, fallback first `activitati`); full CAEN list collapsible; **"Întreprindere
    de stat"** badge when `is_state_owned`; branches (`sucursale`) shown only when non-empty.
