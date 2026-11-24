@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.1](https://github.com/sicap-pro/SICAP.ai/compare/sicap-v0.26.0...sicap-v0.26.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **company:** remove the representatives from the firm page ([cd17cec](https://github.com/sicap-pro/SICAP.ai/commit/cd17cec9bee91f32a2d6e1e2f74ca157f715ade2))
+* **company:** remove the representatives from the firm page ([36f1243](https://github.com/sicap-pro/SICAP.ai/commit/36f12430e9fb552d41acf9c0d9e42c217ee268ec))
+
 ## [0.26.0](https://github.com/sicap-pro/SICAP.ai/compare/sicap-v0.25.0...sicap-v0.26.0) (2026-11-23)
 
 
