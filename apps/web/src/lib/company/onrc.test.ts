@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   companyActivities,
-  companyRepresentatives,
   formatOnrcAddress,
   getPrincipalActivity,
   normalizeFinancials,
@@ -209,37 +208,6 @@ describe("formatOnrcAddress", () => {
     expect(formatOnrcAddress({ strada: "Calea Victoriei", nr: "1", localitate: "București" })).toBe(
       "Calea Victoriei nr. 1, București",
     );
-  });
-});
-
-describe("companyRepresentatives", () => {
-  const raw = [
-    {
-      nume: "POPESCU ION",
-      calitate: "Administrator",
-      data_nastere: "1970-01-01",
-      localitate_nastere: "Buzău",
-    },
-    { nume: "POPESCU ION", calitate: "Administrator", data_nastere: "1970-01-01" },
-    { nume: "IONESCU MARIA", calitate: "Asociat" },
-  ];
-
-  it("returns names and roles only, dropping birth data", () => {
-    expect(companyRepresentatives(raw)).toEqual([
-      { nume: "POPESCU ION", calitate: "Administrator" },
-      { nume: "IONESCU MARIA", calitate: "Asociat" },
-    ]);
-  });
-
-  it("never leaks date of birth", () => {
-    for (const rep of companyRepresentatives(raw)) {
-      expect(Object.keys(rep).sort()).toEqual(["calitate", "nume"]);
-    }
-  });
-
-  it("returns an empty array when there are no representatives", () => {
-    expect(companyRepresentatives(undefined)).toEqual([]);
-    expect(companyRepresentatives([])).toEqual([]);
   });
 });
 

@@ -29,6 +29,8 @@ export async function getCompanyRegistry(nationalId: string): Promise<CompanyReg
       index: ES_INDEX_ONRC,
       body: {
         size: 20,
+        // Personal data of the legal representatives stays in Elasticsearch.
+        _source: { excludes: ["reprezentanti", "reprezentanti_if"] },
         query: { term: { cui: nationalId } },
       },
     })
